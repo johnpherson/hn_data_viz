@@ -6,6 +6,9 @@ from dash.dependencies import Input, Output
 import pandas as pd
 from sqlalchemy import create_engine
 import dash_table
+from wordcloud import WordCloud
+import base64
+from io import BytesIO
 
 # Database connection setup
 DATABASE_URL = 'postgresql+psycopg2://admin:admin@localhost:5432/hn'
@@ -17,6 +20,14 @@ def fetch_data():
     with engine.connect() as conn:
         df = pd.read_sql(query, conn)
     return df
+
+# Generate word cloud image
+def generate_wordcloud(text):
+    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
+    buffer = BytesIO()
+    wordcloud.to_image().save(buffer, format="PNG")
+    encoded_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    return "data:image/png;base64," + encoded_image
 
 # Initialize the Dash app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
@@ -39,7 +50,8 @@ app.layout = dbc.Container([
         ), width=6)
     ], justify='center'),
     dbc.Row([
-        dbc.Col(dcc.Graph(id='line_chart'), width=12)
+        dbc.Col(dcc.Graph(id='line_chart'), width=8),
+        dbc.Col(html.Img(id='wordcloud'), width=4)
     ]),
     dbc.Row([
         dbc.Col(dash_table.DataTable(
@@ -72,9 +84,10 @@ app.layout = dbc.Container([
     ])
 ], fluid=True)
 
-# Callback to update the graph and table based on the dropdown selection
+# Callback to update the graph, word cloud, and table based on the dropdown selection
 @app.callback(
     [Output('line_chart', 'figure'),
+     Output('wordcloud', 'src'),
      Output('data_table', 'data')],
     [Input('dropdown', 'value')]
 )
@@ -106,10 +119,15 @@ def update_dashboard(selected_value):
         }
     }
 
+    # Prepare data for the word cloud
+    text = " ".join(df['title'].astype(str).tolist())
+    print(text)  # Debugging: Print the text to ensure it's being generated
+    wordcloud_src = generate_wordcloud(text)
+
     # Prepare data for the table
     table_data = df.to_dict('records')
     
-    return line_chart_figure, table_data
+    return line_chart_figure, wordcloud_src, table_data
 
 # Run the app
 if __name__ == '__main__':
