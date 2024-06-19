@@ -1,0 +1,18 @@
+hn_data_viz/
+
+# Python bytecode files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# macOS specific files
+.DS_Store
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Logs
+*.log
+
+# Ignore sensitive files (customize as needed)
+.env
